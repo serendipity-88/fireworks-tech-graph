@@ -63,10 +63,20 @@ Before finalizing SVG, check:
 5. Components (boxes, cylinders, etc.)
 6. Component text
 7. Arrow label text
-8. Legend
+8. Legend (on-demand, arrow types only)
 ```
 
 ## Style-Specific Enhancements
+
+### C10: No Arrow-Through-Box (Same-Row Multi-Target)
+
+When a source node needs to connect to multiple non-adjacent targets in the same row, **NEVER** draw a straight arrow that crosses over intermediate boxes. Use one of these patterns:
+
+1. **Chain pattern** (preferred for orchestration): Source → Target₁ → Target₂ → Target₃. Primary link in accent color, subsequent links in gray.
+2. **Bus pattern**: Route a horizontal line below the row, with vertical drops up to each target.
+3. **Omit arrows**: If spatial arrangement + visual hierarchy (fill color, border style) already conveys the relationship, skip intra-layer arrows entirely.
+
+Verification: After placing any horizontal arrow, check that its line segment does not intersect any `<rect>` bounding box other than its source and target.
 
 ### Style-1: Flat Icon Clean- **Perfect alignment**: snap all coordinates to 8px grid
 - **Sharp corners**: rx="8" ry="8" for rounded rects (consistent)
@@ -87,7 +97,7 @@ Before exporting PNG, verify:
 - [ ] Component spacing ≥ 80px
 - [ ] Arrow connection points avoid corners (≥20px from corner)
 - [ ] Multiple arrows between layers are staggered
-- [ ] Legend is readable and doesn't overlap content
+- [ ] Legend (if present) is arrow-types only, no box color entries
 - [ ] SVG validates with `rsvg-convert`
 
 ## Text-Rect Alignment Constraints (Critical)
@@ -137,10 +147,12 @@ All padding values must be ≥ 18px. All inter-card gaps must be ≥ 15px. If an
 ### C6: Arrow Coordinates Reference Variables
 Arrow y-coordinates must reference card variables (e.g., `di_mid`, `cw_bottom`), never hardcoded numbers. When a card moves or resizes, all connected arrows update automatically.
 
-### C7: Legend Placement — Must Be Outside All Containers
-Legend must be placed **below** the bottom-most container with ≥ 20px clearance. Never overlap a legend with any container's bottom edge. The legend is a top-level element, not inside any container.
+### C7: Legend — On-Demand, Arrow Types Only
+Legend is **not required by default**. Add one **only when** the diagram uses 3+ distinct arrow colors or line styles that readers cannot infer from context. When included:
+- Legend entries must be **arrow types only** (e.g., "主路径", "数据流", "返回"). Do NOT add entries for box fill colors — visual hierarchy is self-explanatory.
+- Place below the bottom-most container with ≥ 20px clearance. Never overlap a legend with any container's bottom edge. The legend is a top-level element, not inside any container.
 
-Verification: `legend_y ≥ last_container_bottom + 20`
+Verification: if legend is present, `legend_y ≥ last_container_bottom + 20`
 
 ### C8: Container Internal Padding Balance
 Within a container, the distance from the top edge to the first element (title) and from the last element to the bottom edge must be **balanced**: `|top_padding - bottom_padding| ≤ 6px`.
@@ -148,7 +160,7 @@ Within a container, the distance from the top edge to the first element (title) 
 Typical balanced padding: title at `container_y + 26`, last text at `container_y + container_h - 10`. This gives ~26px top and ~10px bottom for single-line responsibility text, which is acceptable. If the container has no bottom text, center the content vertically.
 
 ### C9: Layout Table Completeness
-Every visual element must appear in the layout table — including legends, arrows between layers, and any standalone labels. If it's rendered in the SVG, it must be in the table with explicit (x, y) coordinates. This ensures canvas height accounts for all elements.
+Every visual element must appear in the layout table — including legends (if present), arrows between layers, and any standalone labels. If it's rendered in the SVG, it must be in the table with explicit (x, y) coordinates. This ensures canvas height accounts for all elements.
 
 Verification: `canvas_height ≥ max_element_bottom + 30` (minimum 30px bottom margin)
 
