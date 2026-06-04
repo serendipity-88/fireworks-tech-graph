@@ -86,14 +86,15 @@ python3 ./scripts/generate-from-template.py architecture ./output/arch.svg '{"ti
 
 1. **Classify** the diagram type (see Diagram Types below)
 2. **Extract structure** — identify layers, nodes, edges, flows, and semantic groups from user description
-3. **Plan layout** — apply the layout rules for the diagram type
-4. **Load style reference** — always load `references/style-1-flat-icon.md` unless user specifies another; load the matching `references/style-N.md` for exact color tokens and SVG patterns
-5. **Map nodes to shapes** — use Shape Vocabulary below
-6. **Check icon needs** — load `references/icons.md` for known products
-7. **Write SVG** with adaptive strategy (see SVG Generation Strategy below)
-8. **Validate**: Run `rsvg-convert file.svg -o /dev/null 2>&1` to check syntax
-9. **Export PNG**: `rsvg-convert -w 1920 file.svg -o file.png`
-10. **Report** the generated file paths
+3. **Plan layout** — apply the layout rules for the diagram type; **load `references/svg-layout-best-practices.md`** for text-rect alignment and card layout constraints
+4. **Compute layout table** — before writing any SVG code, output a layout table (element | x | y | w | h) and verify all children fit inside their parent containers; for 3+ cards, use Python `card_layout()` helper
+5. **Load style reference** — always load `references/style-1-flat-icon.md` unless user specifies another; load the matching `references/style-N.md` for exact color tokens and SVG patterns
+6. **Map nodes to shapes** — use Shape Vocabulary below
+7. **Check icon needs** — load `references/icons.md` for known products
+8. **Write SVG** with adaptive strategy (see SVG Generation Strategy below); **use Python list method with computed coordinates from step 4, never handwrite rect heights or text y-coordinates**
+9. **Validate**: Run `rsvg-convert file.svg -o /dev/null 2>&1` to check syntax; then print per-card verification (padding ≥ 18px, gap ≥ 15px)
+10. **Export PNG**: `rsvg-convert -w 1920 file.svg -o file.png`
+11. **Report** the generated file paths
 
 ## Diagram Types & Layout Rules
 
@@ -304,7 +305,7 @@ Always assign arrow meaning, not just color:
 | Embedding / transform | purple `#7c3aed` | 1px solid | none | Data transformation |
 | Feedback / loop | purple `#7c3aed` | 1.5px curved | none | Iterative reasoning loop |
 
-Always include a **legend** when 2+ arrow types are used.
+Include a **legend** only when 3+ distinct arrow colors or line styles are used AND readers cannot infer meaning from context. Legend entries must be **arrow types only** — do NOT add legend entries for box fill colors (visual hierarchy is self-explanatory).
 
 ## Layout Rules & Validation
 
@@ -415,6 +416,7 @@ rsvg-convert file.svg -o /tmp/test.png 2>&1 && echo "✓ Valid" && rm /tmp/test.
 | 5 | **Glassmorphism** | Dark gradient | Product sites, keynotes |
 | 6 | **Claude Official** | Warm cream `#f8f6f3` | Anthropic-style diagrams |
 | 7 | **OpenAI Official** | Pure white `#ffffff` | OpenAI-style diagrams |
+| 8 | **Claude Lite** | Warm paper `#FAF9F5` | Anthropic editorial, PPT, reports |
 
 Load `references/style-N.md` for exact color tokens and SVG patterns.
 
