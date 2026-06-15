@@ -72,7 +72,7 @@ font-weight: 400 normal, 600 semi-bold for titles
 
 ## Legend
 
-Always include a legend in the bottom-left if multiple arrow colors are used:
+**On-demand only.** Include a legend **only when** the diagram uses 3+ distinct arrow colors or line styles that a reader cannot infer from context. Legend entries must be **arrow types only** — do NOT add entries for box fill colors (visual hierarchy is self-explanatory):
 
 ```xml
 <g transform="translate(20, 560)">

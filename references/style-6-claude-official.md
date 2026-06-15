@@ -131,7 +131,7 @@ Position at the vertical center of each layer.
 
 ## Legend Requirement
 
-When using 2+ arrow types or colors, include a legend in the bottom-right corner:
+**On-demand only.** Include a legend **only when** the diagram uses 3+ distinct arrow colors or line styles that a reader cannot infer from context. Legend entries must be **arrow types only** — do NOT add entries for box fill colors. Place in the bottom-right corner when needed:
 
 ```Legend box -->="720" y="520" width="220" height="8" ry="8" 
       fill="#ffffff" stroke="#4a4a4a" stroke-width="1.5"/>

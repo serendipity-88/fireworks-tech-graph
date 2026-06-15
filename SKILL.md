@@ -339,8 +339,10 @@ Always include a **legend** when 2+ arrow types are used.
 
 **Spacing**:
 - Same-layer nodes: 80px horizontal, 120px vertical between layers
+- **Between-card gap is content-driven, not fixed**: compute gap dynamically based on what sits between the two cards. Formula: `gap = content_height + padding_top + padding_bottom` where padding ≥ 16px each side. Examples: plain arrow (no label) → ~50px; single-line label → ~70px; multi-line label → `70 + (n-1)×16px`; gate text block → `gate_height + 36px`. Never use a uniform large gap — it wastes space and looks unbalanced.
 - Canvas margins: 40px minimum, 60px between node edges
 - Snap to 8px grid: horizontal 120px intervals, vertical 120px intervals
+- **Card inner padding (CRITICAL — most common visual defect)**: Use a **single `PAD` constant** for all four sides. Minimum 28px. Derive card height from content: `card_h = PAD + TITLE_H + GAP + (detail_lines - 1) * LH + PAD`. Never use different values for top vs bottom padding — uneven padding is the #1 cause of cards looking "off".
 
 **Arrow Labels** (CRITICAL):
 - **Offset-first** (default): place label 6-8px above horizontal arrows, or 8px left/right of vertical arrows — do not overlap the arrow line
@@ -353,6 +355,9 @@ Always include a **legend** when 2+ arrow types are used.
 - Anchor arrows on component edges, not geometric centers
 - Route around dense node clusters, use different y-offsets for parallel arrows
 - Jump-over arcs (5px radius) for unavoidable crossings
+- **T-junction for fan-out**: when one node fans out to multiple children, use vertical stub → horizontal bar → vertical drops with arrows (add `<circle r="3">` at branch points). Avoids diagonal lines and guarantees all arrow markers point straight down.
+- **Side-loop arrows must enter from top/bottom**: bidirectional side paths between two nodes must enter the target from its **top** (downward flow) or **bottom** (upward flow), NOT from its side — keeps the last path segment vertical so `orient="auto"` markers always point correctly. Entering from the side is the #1 cause of horizontally-pointing arrowheads.
+- **Orthogonal side paths: use separate `<line>` segments, not `<path>` with bezier**: for L/U-shaped side arrows, split into 2-3 independent `<line>` elements (horizontal → vertical → horizontal) with `marker-end` only on the LAST segment. Never use `<path>` + Q/C bezier for these routes — the curve endpoint tangent misorients the marker.
 
 **Post-Generation Arrow Optimization**:
 
@@ -399,10 +404,11 @@ When two arrows must cross each other, ALWAYS use jump-over arcs to prevent visu
 5. **Filter Boundary Safety**: For every element with `filter="url(...)"`, verify `(element_x + element_width + filter_extension) ≤ viewBox_width` AND `element_x ≥ filter_extension`. The default filter region extends 10-20% beyond bbox; staying near viewBox edges causes Chrome/cairosvg to clip the element's edge-side stroke (one side of the border vanishes while other sides render correctly)
 6. **Arrow-Title Collision**: Arrows MUST NOT cross through section/container title text or region labels (font-size ≥ 13px). For smaller annotations (< 13px), prefer routing around but tolerate if layout constraints require it. *(Visual self-review check — not covered by `validate-svg.sh` automated checks)*
 7. **Frame Label–Arrow Alignment** (sequence diagrams): Section/frame label badges MUST be vertically centered with their first message arrow. Compute `badge_y = first_arrow_y - (badge_height / 2)`. When appending new sections to an existing diagram, verify alignment matches the existing sections — this is the most common regression when adding content incrementally. Use variables in Python list generation to enforce the constraint: `sec_y = 840; badge_y = sec_y - 9  # for height=18 badge`
+8. **SVG Aspect Ratio**: the `<svg>` element MUST include BOTH `viewBox` AND explicit `width`/`height` attributes. Missing explicit `width`/`height` causes aspect-ratio distortion when the SVG is embedded in documents (renderers infer height from the container instead of the viewBox). This is a CRITICAL, easily-missed defect — see SVG Technical Rules.
 
 ## SVG Technical Rules
 
-- ViewBox: `0 0 960 600` default; `0 0 960 800` tall; `0 0 1200 600` wide
+- **CRITICAL: Always set BOTH `viewBox` AND explicit `width`/`height` on `<svg>`** — missing width/height causes aspect-ratio distortion when embedded in documents. Example: `<svg viewBox="0 0 960 600" width="960" height="600">`. ViewBox: `0 0 960 600` default; `0 0 960 800` tall; `0 0 1200 600` wide
 - Fonts: embed via `<style>font-family: ...</style>` — no external `@import` (cairosvg / rsvg-convert cannot fetch external URLs)
 - `<defs>`: arrow markers, gradients, filters, clip paths
 - Text: minimum 12px, prefer 13-14px labels, 11px sub-labels, 16-18px titles

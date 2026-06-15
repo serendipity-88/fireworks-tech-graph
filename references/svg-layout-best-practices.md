@@ -143,6 +143,14 @@ Every visual element must appear in the layout table — including legends (if p
 
 Verification: `canvas_height ≥ max_element_bottom + 30` (minimum 30px bottom margin)
 
+### C10: No Arrow-Through-Box (Same-Row Multi-Target)
+When a source node needs to connect to multiple non-adjacent targets in the same row, **NEVER** draw a straight arrow that crosses over intermediate boxes. Use one of these patterns:
+1. **Chain pattern** (preferred for orchestration): Source → Target₁ → Target₂ → Target₃. Primary link in accent color, subsequent links in gray.
+2. **Bus pattern**: Route a horizontal line below the row, with vertical drops up to each target.
+3. **Omit arrows**: If spatial arrangement + visual hierarchy (fill color, border style) already conveys the relationship, skip intra-layer arrows entirely.
+
+Verification: After placing any horizontal arrow, check that its line segment does not intersect any `<rect>` bounding box other than its source and target.
+
 ### Why These Constraints Exist
 SVG is an absolute-positioning system with no auto-layout. Unlike HTML's CSS box model, `<text>` y-coordinates and `<rect>` height are independently declared with no binding. Manual "mental math" for 10+ cards inevitably produces overflow, clipping, or overlap. The `card_layout()` function creates a single source of truth that eliminates this class of bugs entirely.
 
