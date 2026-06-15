@@ -86,15 +86,16 @@ python3 ./scripts/generate-from-template.py architecture ./output/arch.svg '{"ti
 
 1. **Classify** the diagram type (see Diagram Types below)
 2. **Extract structure** — identify layers, nodes, edges, flows, and semantic groups from user description
-3. **Plan layout** — apply the layout rules for the diagram type
-4. **Load style reference** — always load `references/style-1-flat-icon.md` unless user specifies another; load the matching `references/style-N.md` for exact color tokens and SVG patterns
-5. **Map nodes to shapes** — use Shape Vocabulary below
-6. **Check icon needs** — load `references/icons.md` for known products
-7. **Write SVG** with adaptive strategy (see SVG Generation Strategy below)
-8. **Validate**: Run `python3 -c "import xml.etree.ElementTree as ET; ET.parse('file.svg')"` to check XML syntax
-9. **Export PNG**: Use `cairosvg` (recommended). See **SVG → PNG Conversion** section below for full method comparison
-10. **Report** the generated file paths
-11. **(Optional) Visual self-review** — if your runtime can read images, load the exported PNG back and inspect it. Syntactic validity does not guarantee visual correctness: arrows may cross through component interiors, labels may collide with lifelines or other labels, boxes may overlap, alt-frame text may sit on top of a message, or a legend may cover content. If you see any of these, revise the SVG and re-export; repeat until the rendered image is clean. Common fixes:
+3. **Plan layout** — apply the layout rules for the diagram type; **load `references/svg-layout-best-practices.md`** for text-rect alignment and card layout constraints
+4. **Compute layout table** — before writing any SVG code, output a layout table (element | x | y | w | h) and verify all children fit inside their parent containers; for 3+ cards, use Python `card_layout()` helper
+5. **Load style reference** — always load `references/style-1-flat-icon.md` unless user specifies another; load the matching `references/style-N.md` for exact color tokens and SVG patterns
+6. **Map nodes to shapes** — use Shape Vocabulary below
+7. **Check icon needs** — load `references/icons.md` for known products
+8. **Write SVG** with adaptive strategy (see SVG Generation Strategy below); **use Python list method with computed coordinates from step 4, never handwrite rect heights or text y-coordinates**
+9. **Validate**: Run `python3 -c "import xml.etree.ElementTree as ET; ET.parse('file.svg')"` to check XML syntax; then print per-card verification (padding ≥ 18px, gap ≥ 15px)
+10. **Export PNG**: Use `cairosvg` (recommended). See **SVG → PNG Conversion** section below for full method comparison
+11. **Report** the generated file paths
+12. **(Optional) Visual self-review** — if your runtime can read images, load the exported PNG back and inspect it. Syntactic validity does not guarantee visual correctness: arrows may cross through component interiors, labels may collide with lifelines or other labels, boxes may overlap, alt-frame text may sit on top of a message, or a legend may cover content. If you see any of these, revise the SVG and re-export; repeat until the rendered image is clean. Common fixes:
     - Route arrows through gaps between boxes, not through box interiors
     - Move arrow labels 6-8px away from the arrow line (offset-first); add background rects only when offset is insufficient
     - Widen inter-row/inter-column gutters so same-layer arrows have clear corridors
@@ -105,6 +106,25 @@ python3 ./scripts/generate-from-template.py architecture ./output/arch.svg '{"ti
   Skip this step silently if image reading is unavailable — do not guess.
 
 ## Diagram Types & Layout Rules
+
+### Layer Diagram
+Stacked horizontal layers flowing top→bottom, each layer as a full-width card. **No complex coordinate math needed** — all positions derived from a simple formula.
+- **Layout formula** (compute in Python, never handwrite y-coordinates):
+  ```python
+  CARD_H = 88      # card height
+  GAP = 28         # gap between cards (arrow space)
+  START_Y = 68     # top margin for first card
+  # Layer i top: y_i = START_Y + i * (CARD_H + GAP)
+  # Layer i bottom: y_i + CARD_H
+  # Arrow from layer i to i+1: y1 = y_i + CARD_H + 2, y2 = y_{i+1} - 2
+  # ViewBox height: START_Y + N * (CARD_H + GAP) - GAP + bottom_margin
+  ```
+- Each card: full-width `<rect>` with left accent bar (clipped via `<clipPath>` for rounded corners), number badge, layer name, description, and pill tags
+- Arrows between layers: simple vertical `<line>` at center-x, from card bottom + padding to next card top - padding
+- **Feedback loop** (last → first layer): right-side path with Q-bezier rounded corners, dashed stroke, rotated label
+- No inter-card horizontal arrows, no crossing lines — this is the simplest diagram type
+- ViewBox: width 980, height computed from layer count (7 layers ≈ 880)
+- Color each layer with a distinct hue; use tinted bg (`opacity="0.12"`) for pills
 
 ### Architecture Diagram
 Nodes = services/components. Group into **horizontal layers** (top→bottom or left→right).
