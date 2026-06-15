@@ -581,6 +581,7 @@ const path = require('path');
 | 6 | **Claude Official** | Warm cream `#f8f6f3` | Anthropic-style diagrams |
 | 7 | **OpenAI Official** | Pure white `#ffffff` | OpenAI-style diagrams |
 | 8 | **Dark Luxury** *(AI-authored)* | `#0a0a0a` deep black | Architecture docs, premium editorial — hand-craft SVG from `references/style-8-dark-luxury.md` |
+| 9 | **Claude Lite** | Warm paper `#FAF9F5` | Anthropic editorial, PPT, reports — Claude orange `#D97757` accent, hand-craft SVG from `references/style-9-claude-lite.md` |
 
 Load `references/style-N.md` for exact color tokens and SVG patterns.
 

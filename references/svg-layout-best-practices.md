@@ -79,6 +79,73 @@ Before finalizing SVG, check:
 - **Rounded corners**: rx="12" ry="12" (more rounded than Style-1)
 - **Arrows**: medium weight (2px), subtle markers
 
+## Text-Rect Alignment Constraints (Critical)
+
+These constraints prevent the most common recurring bug: text overflowing or clipping at the bottom of card/rect containers. **Every multi-card diagram MUST follow these rules.**
+
+### C1: Computed Heights — Never Handwrite rect height
+Never manually estimate or hardcode `<rect height="...">` for content cards. Use a `card_layout()` helper function that calculates height from content:
+```python
+def card_layout(y_start, lines_data, pad_top=28, pad_bottom=20, title_gap=26, sub_gap=24, detail_gap=18):
+    """Returns (height, [(y, class, text, fill), ...])"""
+    entries = []
+    y = y_start + pad_top
+    for i, (cls, txt, fill) in enumerate(lines_data):
+        entries.append((y, cls, txt, fill))
+        if i == 0:
+            y += title_gap
+        elif cls == 'node-detail':
+            y += detail_gap
+        else:
+            y += sub_gap
+    last_y = entries[-1][0]
+    height = last_y + pad_bottom - y_start
+    return height, entries
+```
+
+### C2: Minimum Bottom Padding
+Every card rect must satisfy: `last_text_y + 18px ≤ rect_bottom`. This means `pad_bottom ≥ 18` in the helper function. **Zero padding or negative padding (text below rect) is a bug.**
+
+### C3: Minimum Inter-Card Gap
+Cards in the same column must have `gap ≥ 15px`. Use chain calculation:
+```python
+next_card_y = prev_card_y + prev_card_h + GAP  # GAP ≥ 15
+```
+Never place a card by guessing its y-coordinate independently.
+
+### C4: Python Generation Required
+For any diagram with 3+ content cards, **always generate SVG via Python script** using the `card_layout()` helper. Do not handwrite rect heights and text y-coordinates in raw SVG. The Python script is the source of truth.
+
+### C5: Post-Generation Verification
+After generating SVG, automatically print verification for every card:
+```
+Card Name: y=140 h=170 bottom=310 last_text=290 padding=20px OK
+```
+All padding values must be ≥ 18px. All inter-card gaps must be ≥ 15px. If any check fails, fix before exporting PNG.
+
+### C6: Arrow Coordinates Reference Variables
+Arrow y-coordinates must reference card variables (e.g., `di_mid`, `cw_bottom`), never hardcoded numbers. When a card moves or resizes, all connected arrows update automatically.
+
+### C7: Legend — On-Demand, Arrow Types Only
+Legend is **not required by default**. Add one **only when** the diagram uses 3+ distinct arrow colors or line styles that readers cannot infer from context. When included:
+- Legend entries must be **arrow types only** (e.g., "主路径", "数据流", "返回"). Do NOT add entries for box fill colors — visual hierarchy is self-explanatory.
+- Place below the bottom-most container with ≥ 20px clearance. Never overlap a legend with any container's bottom edge. The legend is a top-level element, not inside any container.
+
+Verification: if legend is present, `legend_y ≥ last_container_bottom + 20`
+
+### C8: Container Internal Padding Balance
+Within a container, the distance from the top edge to the first element (title) and from the last element to the bottom edge must be **balanced**: `|top_padding - bottom_padding| ≤ 6px`.
+
+Typical balanced padding: title at `container_y + 26`, last text at `container_y + container_h - 10`. This gives ~26px top and ~10px bottom for single-line responsibility text, which is acceptable. If the container has no bottom text, center the content vertically.
+
+### C9: Layout Table Completeness
+Every visual element must appear in the layout table — including legends (if present), arrows between layers, and any standalone labels. If it's rendered in the SVG, it must be in the table with explicit (x, y) coordinates. This ensures canvas height accounts for all elements.
+
+Verification: `canvas_height ≥ max_element_bottom + 30` (minimum 30px bottom margin)
+
+### Why These Constraints Exist
+SVG is an absolute-positioning system with no auto-layout. Unlike HTML's CSS box model, `<text>` y-coordinates and `<rect>` height are independently declared with no binding. Manual "mental math" for 10+ cards inevitably produces overflow, clipping, or overlap. The `card_layout()` function creates a single source of truth that eliminates this class of bugs entirely.
+
 ## Validation Checklist
 
 Before exporting PNG, verify:
