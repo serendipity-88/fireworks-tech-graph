@@ -1,0 +1,432 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "fireworks-diagram.schema.json",
+  "title": "Fireworks Diagram v0.3",
+  "type": "object",
+  "required": [
+    "version",
+    "style",
+    "edges"
+  ],
+  "properties": {
+    "version": {
+      "type": "string"
+    },
+    "style": {
+      "type": "string"
+    },
+    "canvas": {
+      "type": "object",
+      "properties": {
+        "w": {
+          "type": "integer"
+        },
+        "h": {
+          "type": "integer"
+        },
+        "aspectRatio": {
+          "type": "string"
+        },
+        "background": {
+          "type": "object",
+          "properties": {
+            "pattern": {
+              "enum": [
+                "grid",
+                "dots",
+                "none"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "root": {
+      "$ref": "#/definitions/group"
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "#/definitions/group"
+          },
+          {
+            "$ref": "#/definitions/node"
+          }
+        ]
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/edge"
+      }
+    }
+  },
+  "oneOf": [
+    {
+      "required": [
+        "root"
+      ],
+      "not": {
+        "required": [
+          "nodes"
+        ]
+      }
+    },
+    {
+      "required": [
+        "nodes"
+      ],
+      "not": {
+        "required": [
+          "root"
+        ]
+      }
+    }
+  ],
+  "definitions": {
+    "group": {
+      "type": "object",
+      "required": [
+        "type",
+        "layout"
+      ],
+      "properties": {
+        "type": {
+          "const": "group"
+        },
+        "id": {
+          "type": "string"
+        },
+        "parentId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "titlePosition": {
+          "enum": [
+            "header",
+            "inline"
+          ]
+        },
+        "layout": {
+          "enum": [
+            "row",
+            "col",
+            "grid",
+            "stack",
+            "tree",
+            "free"
+          ]
+        },
+        "direction": {
+          "enum": [
+            "LR",
+            "TB",
+            "radial"
+          ]
+        },
+        "gap": {
+          "type": "integer"
+        },
+        "cols": {
+          "type": "integer"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "#/definitions/group"
+              },
+              {
+                "$ref": "#/definitions/node"
+              }
+            ]
+          }
+        },
+        "swimlane": {
+          "type": "string"
+        },
+        "fragment": {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "alt",
+                "loop",
+                "opt"
+              ]
+            },
+            "guard": {
+              "type": "string"
+            }
+          }
+        },
+        "boundary": {
+          "type": "object",
+          "properties": {
+            "style": {
+              "enum": [
+                "dashed",
+                "solid",
+                "cloud"
+              ]
+            },
+            "semantic": {
+              "enum": [
+                "zone",
+                "subnet",
+                "vpc",
+                "system"
+              ]
+            }
+          }
+        },
+        "headers": {
+          "type": "object",
+          "properties": {
+            "rows": {
+              "type": "array"
+            },
+            "cols": {
+              "type": "array"
+            }
+          }
+        },
+        "styleHook": {
+          "type": "object",
+          "required": [
+            "hook"
+          ],
+          "properties": {
+            "hook": {
+              "type": "string"
+            },
+            "params": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "node": {
+      "type": "object",
+      "required": [
+        "type",
+        "title"
+      ],
+      "properties": {
+        "type": {
+          "const": "node"
+        },
+        "id": {
+          "type": "string"
+        },
+        "parentId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "subtitle": {
+          "type": "string"
+        },
+        "badge": {
+          "type": "string"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "shape": {
+          "enum": [
+            "rect",
+            "diamond",
+            "cylinder",
+            "hex",
+            "cloud",
+            "ellipse",
+            "actor",
+            "forkbar",
+            "mergebar",
+            "choiceBar",
+            "initialDot",
+            "finalDot"
+          ]
+        },
+        "role": {
+          "enum": [
+            "default",
+            "primary",
+            "data",
+            "success",
+            "warning",
+            "danger",
+            "info",
+            "accent",
+            "muted"
+          ]
+        },
+        "compartments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "title"
+            ],
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "ext": {
+          "type": "object",
+          "properties": {
+            "state": {
+              "type": "object",
+              "properties": {
+                "entry": {
+                  "type": "string"
+                },
+                "exit": {
+                  "type": "string"
+                },
+                "do": {
+                  "type": "string"
+                }
+              }
+            },
+            "cell": {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "string"
+                },
+                "status": {
+                  "enum": [
+                    "yes",
+                    "no",
+                    "partial"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "edge": {
+      "type": "object",
+      "required": [
+        "from",
+        "to"
+      ],
+      "properties": {
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        },
+        "relType": {
+          "enum": [
+            "association",
+            "dependency",
+            "inheritance",
+            "realization",
+            "composition",
+            "aggregation",
+            "call",
+            "transition",
+            "message"
+          ]
+        },
+        "label": {
+          "type": "string"
+        },
+        "decorators": {
+          "type": "object",
+          "properties": {
+            "arrowHead": {
+              "enum": [
+                "arrow",
+                "triangle",
+                "diamond",
+                "diamondFilled",
+                "none"
+              ]
+            },
+            "arrowTail": {
+              "enum": [
+                "arrow",
+                "triangle",
+                "diamond",
+                "diamondFilled",
+                "none"
+              ]
+            },
+            "cardFrom": {
+              "type": "string"
+            },
+            "cardTo": {
+              "type": "string"
+            },
+            "guard": {
+              "type": "string"
+            },
+            "action": {
+              "type": "string"
+            },
+            "trigger": {
+              "type": "string"
+            },
+            "seq": {
+              "type": "integer"
+            },
+            "msgType": {
+              "enum": [
+                "call",
+                "return",
+                "create",
+                "destroy"
+              ]
+            }
+          }
+        },
+        "routing": {
+          "enum": [
+            "orthogonal",
+            "straight",
+            "curve"
+          ]
+        },
+        "anchor": {
+          "enum": [
+            "top",
+            "bottom",
+            "left",
+            "right",
+            "center"
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

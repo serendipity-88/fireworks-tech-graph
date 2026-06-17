@@ -84,14 +84,18 @@ python3 ./scripts/generate-from-template.py architecture ./output/arch.svg '{"ti
 
 ## Workflow (Always Follow This Order)
 
-1. **Classify** the diagram type (see Diagram Types below)
+1. **Classify** the diagram type (see Diagram Types below) **and pick render route**: architecture / layered / data-flow / agent / memory → **Route A (layout-driven, default)**; sequence / state-machine / ER / class / UML, or style 8/9, or custom shapes → **Route B (hand-write SVG)**.
 2. **Extract structure** — identify layers, nodes, edges, flows, and semantic groups from user description
 3. **Plan layout** — apply the layout rules for the diagram type; **load `references/svg-layout-best-practices.md`** for text-rect alignment and card layout constraints
 4. **Compute layout table** — before writing any SVG code, output a layout table (element | x | y | w | h) and verify all children fit inside their parent containers; for 3+ cards, use Python `card_layout()` helper
 5. **Load style reference** — always load `references/style-1-flat-icon.md` unless user specifies another; load the matching `references/style-N.md` for exact color tokens and SVG patterns
 6. **Map nodes to shapes** — use Shape Vocabulary below
 7. **Check icon needs** — load `references/icons.md` for known products
-8. **Write SVG** with adaptive strategy (see SVG Generation Strategy below); **use Python list method with computed coordinates from step 4, never handwrite rect heights or text y-coordinates**
+8. **Render** (follow the route picked in step 1):
+   - **Route A — layout-driven via render_html (default for architecture)**: emit a layout-driven JSON per `references/diagram.schema.json` (nested `group` with `layout: row|col|grid|stack` + `nodes` with `title/role/styleHook`; **do NOT write x/y/width/height**). Then render:
+     `python3 scripts/render_html.py data.json out.png`
+     HTML/CSS flex computes ALL coordinates → 根治错位/宽窄不一/溢出; padding 四边固定、文字居中、不换行、深底自动浅字、SVG 箭头 全自动. 需 `playwright` + 系统 Chrome. 视觉规则见下方 **Architecture Diagram Design Rules**;格式见 `fixtures/sample-arch-layout.json`.
+   - **Route B — generate-from-template.py / hand-write SVG** (for no-Chrome env, or sequence/ER/state-machine/class, style 8/9, custom shapes): `cat data.json | python3 scripts/generate-from-template.py architecture out.svg` (auto layout_engine if `version` field present), or Python list method + layout table.
 9. **Validate**: Run `python3 -c "import xml.etree.ElementTree as ET; ET.parse('file.svg')"` to check XML syntax; then print per-card verification (padding ≥ 18px, gap ≥ 15px)
 10. **Export PNG**: Use `cairosvg` (recommended). See **SVG → PNG Conversion** section below for full method comparison
 11. **Report** the generated file paths
@@ -105,15 +109,28 @@ python3 ./scripts/generate-from-template.py architecture ./output/arch.svg '{"ti
     - If a filtered element (drop-shadow, blur) is missing one side of its border, move it ≥30px away from that viewBox edge, or remove the filter and rely on color/contrast for visual separation
   Skip this step silently if image reading is unavailable — do not guess.
 
+## Architecture Diagram Design Rules (Route A / render_html)
+
+`scripts/render_html.py` 是架构图主线渲染器,以下规则**由它自动保证**(LLM 产 JSON 时只需选对 `layout/role/styleHook`,不用管坐标/样式):
+
+1. **layout-driven**:node 只声明结构(`layout:row|col|grid|stack` + `title/role`),坐标全由 flex 算 → 不错位、同行等宽。
+2. **连线最小化**:架构图靠**层序 + 容器分组 + 邻接**表达关系,**默认 0 跨卡箭头**;只在 `edges` 里声明**必须显式的层间流向**(render_html 画 SVG 实心三角箭头,走层间隙不穿卡)。不要为"调用关系"画穿卡线。
+3. **虚线框分组**:普通 `group` 自动虚线边框(模块分隔感);实心分区用 `styleHook:{hook:"solidPrimary"|"darkBar"}`(知识库/基础层)。
+4. **role 选色 + 深底自动浅字**:`role` default/primary/data/success/muted/... 映射配色;深底 role(primary/darkBar)文字自动浅色,无需手填。
+5. **卡片内边距固定**:`padding:16px` 四边固定、文字 `text-align:center` 居中、`white-space:nowrap` 不换行、`min-width:max-content`(长文字自动拉宽,绝不挤压溢出)。
+6. **配色/style**:JSON 顶层 `style` 选 `"flat-icon"` 或 `"claude-lite"`(暖纸+Claude 橙),render_html 内 `STYLES` 字典即 design token,改风格只改那里。
+
+> 这些规则在 render_html 里是确定性 CSS,不是 LLM 临场判断。LLM 产 JSON 时遵循 schema + 选对 role/styleHook/layout,视觉就稳。
+
 ## Diagram Types & Layout Rules
 
 ### Layer Diagram
 Stacked horizontal layers flowing top→bottom, each layer as a full-width card. **No complex coordinate math needed** — all positions derived from a simple formula.
 - **Layout formula** (compute in Python, never handwrite y-coordinates):
   ```python
-  CARD_H = 88      # card height
-  GAP = 28         # gap between cards (arrow space)
-  START_Y = 68     # top margin for first card
+  CARD_H = 88      # card height (8 倍数)
+  GAP = 64         # gap = 2xl (见 references/spacing-scale.md)
+  START_Y = 48     # top margin = xl
   # Layer i top: y_i = START_Y + i * (CARD_H + GAP)
   # Layer i bottom: y_i + CARD_H
   # Arrow from layer i to i+1: y1 = y_i + CARD_H + 2, y2 = y_{i+1} - 2
@@ -337,12 +354,11 @@ Always include a **legend** when 2+ arrow types are used.
 
 ## Layout Rules & Validation
 
-**Spacing**:
-- Same-layer nodes: 80px horizontal, 120px vertical between layers
-- **Between-card gap is content-driven, not fixed**: compute gap dynamically based on what sits between the two cards. Formula: `gap = content_height + padding_top + padding_bottom` where padding ≥ 16px each side. Examples: plain arrow (no label) → ~50px; single-line label → ~70px; multi-line label → `70 + (n-1)×16px`; gate text block → `gate_height + 36px`. Never use a uniform large gap — it wastes space and looks unbalanced.
-- Canvas margins: 40px minimum, 60px between node edges
-- Snap to 8px grid: horizontal 120px intervals, vertical 120px intervals
-- **Card inner padding (CRITICAL — most common visual defect)**: Use a **single `PAD` constant** for all four sides. Minimum 28px. Derive card height from content: `card_h = PAD + TITLE_H + GAP + (detail_lines - 1) * LH + PAD`. Never use different values for top vs bottom padding — uneven padding is the #1 cause of cards looking "off".
+**Spacing** (全部取自 `references/spacing-scale.md`,8 基数档位,禁止裸数值):
+- Same-layer gap: `sm` 16px; inter-layer vertical: `2xl` 64px
+- Canvas margin: `xl` 48px
+- Snap to 8px grid (all coordinates round to multiples of 8)
+- **Card inner padding (CRITICAL — most common visual defect)**: single `PAD` = `sm` 16px for all four sides. `card_h = PAD + TITLE_H + md(24) + (detail_lines - 1) * md(24) + PAD`. Never use different top vs bottom padding — uneven padding is the #1 cause of cards looking "off".
 
 **Arrow Labels** (CRITICAL):
 - **Offset-first** (default): place label 6-8px above horizontal arrows, or 8px left/right of vertical arrows — do not overlap the arrow line

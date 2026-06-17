@@ -3,10 +3,12 @@
 ## Universal Layout Rules (Apply to All Styles)
 
 ### 1. Component Spacing
-- **Minimum clearance between components**: 80px (edge to edge)
-- **Minimum clearance for arrow paths**: 60px from component edges
-- **Layer vertical spacing**: 120px between horizontal layers
-- **Same-layer horizontal spacing**: 100-120px between components
+> **所有 spacing 取自 `references/spacing-scale.md`(8 基数档位:s/sm/md/lg/xl/2xl/3xl),禁止裸数值。**
+
+- **Minimum clearance between components**: `xl` 48px (edge to edge)
+- **Minimum clearance for arrow paths**: `md` 24px from component edges
+- **Layer vertical spacing**: `2xl` 64px between horizontal layers
+- **Same-layer horizontal gap**: `sm` 16px between components
 
 ### 2. Arrow Routing & Connection Points
 
@@ -86,7 +88,7 @@ These constraints prevent the most common recurring bug: text overflowing or cli
 ### C1: Computed Heights — Never Handwrite rect height
 Never manually estimate or hardcode `<rect height="...">` for content cards. Use a `card_layout()` helper function that calculates height from content:
 ```python
-def card_layout(y_start, lines_data, pad_top=28, pad_bottom=20, title_gap=26, sub_gap=24, detail_gap=18):
+def card_layout(y_start, lines_data, pad_top=16, pad_bottom=16, title_gap=24, sub_gap=24, detail_gap=16):
     """Returns (height, [(y, class, text, fill), ...])"""
     entries = []
     y = y_start + pad_top
@@ -104,12 +106,12 @@ def card_layout(y_start, lines_data, pad_top=28, pad_bottom=20, title_gap=26, su
 ```
 
 ### C2: Minimum Bottom Padding
-Every card rect must satisfy: `last_text_y + 18px ≤ rect_bottom`. This means `pad_bottom ≥ 18` in the helper function. **Zero padding or negative padding (text below rect) is a bug.**
+Every card rect must satisfy: `last_text_y + 16px ≤ rect_bottom`. This means `pad_bottom ≥ 16 (sm)` in the helper function (见 `spacing-scale.md`)。**Zero padding or negative padding (text below rect) is a bug.**
 
 ### C3: Minimum Inter-Card Gap
-Cards in the same column must have `gap ≥ 15px`. Use chain calculation:
+Cards in the same column must have `gap ≥ 16px (sm)`. Use chain calculation:
 ```python
-next_card_y = prev_card_y + prev_card_h + GAP  # GAP ≥ 15
+next_card_y = prev_card_y + prev_card_h + GAP  # GAP ≥ 16 (sm)
 ```
 Never place a card by guessing its y-coordinate independently.
 
@@ -121,7 +123,7 @@ After generating SVG, automatically print verification for every card:
 ```
 Card Name: y=140 h=170 bottom=310 last_text=290 padding=20px OK
 ```
-All padding values must be ≥ 18px. All inter-card gaps must be ≥ 15px. If any check fails, fix before exporting PNG.
+All padding values must be ≥ 16px (sm). All inter-card gaps must be ≥ 16px (sm). If any check fails, fix before exporting PNG.
 
 ### C6: Arrow Coordinates Reference Variables
 Arrow y-coordinates must reference card variables (e.g., `di_mid`, `cw_bottom`), never hardcoded numbers. When a card moves or resizes, all connected arrows update automatically.
@@ -134,9 +136,9 @@ Legend is **not required by default**. Add one **only when** the diagram uses 3+
 Verification: if legend is present, `legend_y ≥ last_container_bottom + 20`
 
 ### C8: Container Internal Padding Balance
-Within a container, the distance from the top edge to the first element (title) and from the last element to the bottom edge must be **balanced**: `|top_padding - bottom_padding| ≤ 6px`.
+Within a container, the distance from the top edge to the first element (title) and from the last element to the bottom edge must be **balanced**: `|top_padding - bottom_padding| ≤ 8px`.
 
-Typical balanced padding: title at `container_y + 26`, last text at `container_y + container_h - 10`. This gives ~26px top and ~10px bottom for single-line responsibility text, which is acceptable. If the container has no bottom text, center the content vertically.
+Typical balanced padding: title at `container_y + 24 (md)`, last text at `container_y + container_h - 16 (sm)`. This gives ~24px top and ~16px bottom for single-line responsibility text, which is acceptable. If the container has no bottom text, center the content vertically.
 
 ### C9: Layout Table Completeness
 Every visual element must appear in the layout table — including legends (if present), arrows between layers, and any standalone labels. If it's rendered in the SVG, it must be in the table with explicit (x, y) coordinates. This ensures canvas height accounts for all elements.

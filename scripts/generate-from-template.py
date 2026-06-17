@@ -1319,7 +1319,12 @@ def render_rect_node(node: Dict[str, object], style: Dict[str, object], kind: st
     if kind == "bot":
         title_x = x + width / 2
         text_anchor = "middle"
-    lines.append(f'  <text x="{title_x}" y="{title_y}" text-anchor="{text_anchor}" class="node-title">{title}</text>')
+    _tf = node.get("text_fill")
+    _tf_attr = f' style="fill:{_tf}"' if _tf else ''
+    # 有 subtitle 时,title/sub 整体垂直居中(而非 title 单独居中导致下空)
+    if subtitle and kind in {"rect", "double_rect", "hexagon"}:
+        title_y = y + height / 2 - 11  # title 上移,让 title+sub 整体居中
+    lines.append(f'  <text x="{title_x}" y="{title_y}" text-anchor="{text_anchor}" class="node-title"{_tf_attr}>{title}</text>')
 
     if subtitle:
         sub_y = title_y + 22
@@ -1336,7 +1341,7 @@ def render_rect_node(node: Dict[str, object], style: Dict[str, object], kind: st
             sub_y = y + height + 20
         if kind == "user_avatar":
             sub_y = title_y + 22
-        lines.append(f'  <text x="{title_x}" y="{sub_y}" text-anchor="{text_anchor}" class="node-sub">{subtitle}</text>')
+        lines.append(f'  <text x="{title_x}" y="{sub_y}" text-anchor="{text_anchor}" class="node-sub"{_tf_attr}>{subtitle}</text>')
 
     tag_lines = []
     if node.get("tags"):
@@ -1581,6 +1586,11 @@ def main() -> None:
             data = json.loads(sys.argv[3])
         else:
             data = json.load(sys.stdin)
+        # layout-driven JSON(新 schema:有 version、无 containers)→ 先用 layout_engine 算坐标
+        # 旧 coordinate-driven fixture(有 containers)原样走,零回归
+        if isinstance(data, dict) and 'version' in data and 'containers' not in data:
+            import layout_engine
+            data = layout_engine.convert(data)
         svg_content = build_svg(template_type, data)
         with open(output_path, "w", encoding="utf-8") as handle:
             handle.write(svg_content)

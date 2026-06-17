@@ -1,0 +1,213 @@
+{
+  "version": "0.3",
+  "style": "claude-lite",
+  "canvas": {
+    "w": 1080
+  },
+  "root": {
+    "type": "group",
+    "layout": "col",
+    "gap": 18,
+    "children": [
+      {
+        "type": "group",
+        "id": "l1",
+        "title": "应用层",
+        "titlePosition": "header",
+        "layout": "row",
+        "gap": 16,
+        "children": [
+          {
+            "type": "node",
+            "id": "a1",
+            "title": "实时引导Agent",
+            "subtitle": "主动引导操作",
+            "badge": "PROBE",
+            "icon": "robot",
+            "role": "primary"
+          },
+          {
+            "type": "node",
+            "id": "a2",
+            "title": "商户政策",
+            "subtitle": "自然语言查询",
+            "role": "default"
+          },
+          {
+            "type": "node",
+            "id": "a3",
+            "title": "智能质检",
+            "subtitle": "对话质量评估",
+            "role": "default"
+          },
+          {
+            "type": "node",
+            "id": "a4",
+            "title": "工单流转",
+            "subtitle": "意图分发",
+            "role": "default"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "l2",
+        "title": "核心能力",
+        "layout": "row",
+        "gap": 16,
+        "children": [
+          {
+            "type": "group",
+            "id": "kb",
+            "title": "知识库",
+            "layout": "stack",
+            "styleHook": {
+              "hook": "solidPrimary"
+            },
+            "children": [
+              {
+                "type": "node",
+                "id": "kb1",
+                "title": "知识库"
+              },
+              {
+                "type": "node",
+                "id": "kb2",
+                "title": "搜索"
+              },
+              {
+                "type": "node",
+                "id": "kb3",
+                "title": "问答"
+              }
+            ]
+          },
+          {
+            "type": "group",
+            "id": "mx",
+            "layout": "grid",
+            "cols": 3,
+            "gap": 14,
+            "children": [
+              {
+                "type": "group",
+                "id": "c1",
+                "title": "工具链",
+                "layout": "stack",
+                "children": [
+                  {
+                    "type": "node",
+                    "title": "RAG 检索",
+                    "id": "c1_0"
+                  },
+                  {
+                    "type": "node",
+                    "title": "API 调用",
+                    "id": "c1_1"
+                  },
+                  {
+                    "type": "node",
+                    "title": "代码执行",
+                    "id": "c1_2"
+                  }
+                ]
+              },
+              {
+                "type": "group",
+                "id": "c2",
+                "title": "记忆",
+                "layout": "stack",
+                "children": [
+                  {
+                    "type": "node",
+                    "title": "短期上下文",
+                    "id": "c2_0"
+                  },
+                  {
+                    "type": "node",
+                    "title": "长期向量库",
+                    "id": "c2_1"
+                  },
+                  {
+                    "type": "node",
+                    "title": "图谱记忆",
+                    "id": "c2_2"
+                  }
+                ]
+              },
+              {
+                "type": "group",
+                "id": "c3",
+                "title": "安全",
+                "layout": "stack",
+                "children": [
+                  {
+                    "type": "node",
+                    "title": "输入过滤",
+                    "id": "c3_0"
+                  },
+                  {
+                    "type": "node",
+                    "title": "输出审核",
+                    "id": "c3_1"
+                  },
+                  {
+                    "type": "node",
+                    "title": "越狱防护",
+                    "id": "c3_2"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "l3",
+        "title": "基础层",
+        "layout": "row",
+        "gap": 16,
+        "styleHook": {
+          "hook": "darkBar"
+        },
+        "children": [
+          {
+            "type": "node",
+            "id": "m1",
+            "title": "LLM 大模型",
+            "role": "muted"
+          },
+          {
+            "type": "node",
+            "id": "m2",
+            "title": "向量检索",
+            "role": "muted"
+          },
+          {
+            "type": "node",
+            "id": "m3",
+            "title": "Evaluation",
+            "role": "muted"
+          },
+          {
+            "type": "node",
+            "id": "m4",
+            "title": "Runtime",
+            "role": "muted"
+          }
+        ]
+      }
+    ]
+  },
+  "edges": [
+    {
+      "from": "l1",
+      "to": "l2"
+    },
+    {
+      "from": "l2",
+      "to": "l3"
+    }
+  ]
+}
