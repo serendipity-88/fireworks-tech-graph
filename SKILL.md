@@ -84,7 +84,9 @@ python3 ./scripts/generate-from-template.py architecture ./output/arch.svg '{"ti
 
 ## Workflow (Always Follow This Order)
 
-1. **Classify** the diagram type (see Diagram Types below) **and pick render route**: architecture / layered / data-flow / agent / memory → **Route A (layout-driven, default)**; sequence / state-machine / ER / class / UML, or style 8/9, or custom shapes → **Route B (hand-write SVG)**.
+1. **Classify** diagram type + **confirm visual style with user**:
+   - **Route**: architecture / layered / data-flow / agent / memory → Route A (render_html); sequence / ER / state-machine / class / UML → Route B.
+   - **Style**: if the user didn't specify a visual style in their message, **proactively ask "这次用哪个风格?"** — list options: `claude-lite`(暖纸+橙,默认) / `flat-icon`(白底蓝) / 可按需扩展更多。User replies with one word → set JSON `style` field accordingly. **不要默默用默认,让用户选一句。**
 2. **Extract structure** — identify layers, nodes, edges, flows, and semantic groups from user description
 3. **Plan layout** — apply the layout rules for the diagram type; **load `references/svg-layout-best-practices.md`** for text-rect alignment and card layout constraints
 4. **Compute layout table** — before writing any SVG code, output a layout table (element | x | y | w | h) and verify all children fit inside their parent containers; for 3+ cards, use Python `card_layout()` helper
@@ -109,18 +111,22 @@ python3 ./scripts/generate-from-template.py architecture ./output/arch.svg '{"ti
     - If a filtered element (drop-shadow, blur) is missing one side of its border, move it ≥30px away from that viewBox edge, or remove the filter and rely on color/contrast for visual separation
   Skip this step silently if image reading is unavailable — do not guess.
 
-## Architecture Diagram Design Rules (Route A / render_html)
+## Architecture Diagram Design Rules
 
-`scripts/render_html.py` 是架构图主线渲染器,以下规则**由它自动保证**(LLM 产 JSON 时只需选对 `layout/role/styleHook`,不用管坐标/样式):
+> **核心原则:LLM 是设计师,skill 是工具箱。** 不要无脑套模板(render_html 卡片矩阵),每张图先**读懂内容的信息层级**,再判断"哪些该卡片化、哪些该文字、多宽、怎么排",然后设计。`render_html.py` 是参考工具(配色 token + 渲染能力),不是固定模具。
 
-1. **layout-driven**:node 只声明结构(`layout:row|col|grid|stack` + `title/role`),坐标全由 flex 算 → 不错位、同行等宽。
-2. **连线最小化**:架构图靠**层序 + 容器分组 + 邻接**表达关系,**默认 0 跨卡箭头**;只在 `edges` 里声明**必须显式的层间流向**(render_html 画 SVG 实心三角箭头,走层间隙不穿卡)。不要为"调用关系"画穿卡线。
-3. **虚线框分组**:普通 `group` 自动虚线边框(模块分隔感);实心分区用 `styleHook:{hook:"solidPrimary"|"darkBar"}`(知识库/基础层)。
-4. **role 选色 + 深底自动浅字**:`role` default/primary/data/success/muted/... 映射配色;深底 role(primary/darkBar)文字自动浅色,无需手填。
-5. **卡片内边距固定**:`padding:16px` 四边固定、文字 `text-align:center` 居中、`white-space:nowrap` 不换行、`min-width:max-content`(长文字自动拉宽,绝不挤压溢出)。
-6. **配色/style**:JSON 顶层 `style` 选 `"flat-icon"` 或 `"claude-lite"`(暖纸+Claude 橙),render_html 内 `STYLES` 字典即 design token,改风格只改那里。
+**设计铁律(逐条,违反即错)**:
 
-> 这些规则在 render_html 里是确定性 CSS,不是 LLM 临场判断。LLM 产 JSON 时遵循 schema + 选对 role/styleHook/layout,视觉就稳。
+1. **读懂信息层级再动手**:并列项(数据源/模块清单)→ chip 分区;顺序流程(→ 步骤)→ **纯文字 + 箭头,不套卡片**(和数据源 chip 视觉区分);标题/层名 → 强调(粗/色条);分组/层 → 容器(框)。
+2. ⚠️ **信息完整铁律**:每一个文字/标签**必须完整展示**,**绝不截断**(`text-overflow:ellipsis`/`overflow:hidden`/`flex` 压缩截断 全部禁止)。宁可块留白或 chip 按内容自适应宽,也**不允许 `...`**。信息完整性 > 视觉整齐 > 等宽。
+3. **层等宽 + 对齐一致**:多个并列层取**最宽层的宽度统一**(`width:fit-content` 测 max → 所有层设该宽);layer 内部**对齐统一**(要么全左、要么全居中,别标题左而内容居中)。
+4. **宽度不硬撑空**:别固定画布宽硬套导致右边空。块跟内容走(fit),或内容填满(均匀/居中),或取最宽层统一——选哪种看内容,**不让右边大段空白**。
+5. **不为好看稀释信息**:卡片大留白是反模式(把密集信息拆成空卡片 = 信息稀释)。紧凑优先,像原始结构(ASCII/草图)的信息密度。
+6. **还原用户给的结构**:如果用户给了 ASCII/草图/代码块,**高度还原其排列逻辑**(信息密度 + 层级 + 流程),视觉升级但**不改信息结构**。
+7. **风格统一**:选定一套风格(如 claude-lite)后,强调色统一(如 Claude 橙 `#D97757`),不要层间多色乱搭(多彩像 flat-icon,不像 claude)。
+8. **深底自动浅字**:深背景的卡片/层,文字必须浅色(role 含 text 色,或手动配)。
+
+> `render_html.py` 可作参考(配色 token 在 `STYLES` 字典、playwright 渲染能力),但**布局由 LLM 按上面铁律设计**,不是产 JSON 套它的卡片矩阵模板。
 
 ## Diagram Types & Layout Rules
 
